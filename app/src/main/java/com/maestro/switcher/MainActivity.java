@@ -1,71 +1,69 @@
 package com.maestro.switcher;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 
-import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.util.logging.Logger;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ConnectDialogFragment.Connector {
 
     private Socket socket;
     private DataOutputStream ostream;
     private DataInputStream instream;
     private EditText command_string;
+    private String server_ip;
 
     private static Logger log = Logger.getLogger(MainActivity.class.getName());
 
     public static final int SERVERPORT = 6666;
+
+    @Override
+    public void Connect(String ip){
+        log.info("Connect IP = "+ip);
+        server_ip = ip;
+        new Thread(new ClientThread()).start();
+    }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        ConnectDialogFragment connectDialog = new ConnectDialogFragment();
+        connectDialog.show(getFragmentManager(), "Connect");
+
         command_string = (EditText) findViewById(R.id.command_string);
 
         command_string.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                log.info("On key: : "+keyCode);
+                log.info("On key: : " + keyCode);
 
                 // Actions filter
                 if (event.getAction() != KeyEvent.ACTION_DOWN)
                     return false;
 
-                switch (keyCode)
-                {
+                switch (keyCode) {
                     case KeyEvent.KEYCODE_ENTER:
                         log.info("Enter");
                         try {
                             String command = command_string.getText().toString();
                             command += '\0';
                             ostream.writeBytes(command);
-                        }
-                        catch (IOException ex) {
+                        } catch (IOException ex) {
                             ex.printStackTrace();
-                        }
-                        catch (Exception e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                         break;
@@ -76,8 +74,6 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-
-        new Thread(new ClientThread()).start();
     }
 
     class ClientThread implements Runnable {
@@ -85,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
 
             try {
-                InetAddress serverAddr = InetAddress.getByName("192.168.0.100");
+                InetAddress serverAddr = InetAddress.getByName(server_ip);
                 socket = new Socket(serverAddr, SERVERPORT);
 
                 ostream = new DataOutputStream(socket.getOutputStream());
@@ -110,9 +106,17 @@ public class MainActivity extends AppCompatActivity {
                 }
 
             } catch (UnknownHostException e1) {
+
                 e1.printStackTrace();
+
+                ConnectDialogFragment connectDialog = new ConnectDialogFragment();
+                connectDialog.show(getFragmentManager(), "Connect");
+
             } catch (IOException e1) {
                 e1.printStackTrace();
+
+                ConnectDialogFragment connectDialog = new ConnectDialogFragment();
+                connectDialog.show(getFragmentManager(), "Connect");
             }
 
         }

@@ -11,6 +11,8 @@ import android.view.LayoutInflater;
 import android.widget.EditText;
 import android.view.View;
 
+import java.util.logging.Logger;
+
 
 /**
  * Created by maestro on 22.10.2015.
@@ -48,12 +50,25 @@ public class ConnectDialogFragment extends DialogFragment {
 
         // Get the layout inflater
         LayoutInflater inflater = getActivity().getLayoutInflater();
+        final View connect_dial_view = inflater.inflate(R.layout.connect, null);
 
         // Use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle("IP address");
 
-        final View connect_dial_view = inflater.inflate(R.layout.connect, null);
+        try {
+            String local_ip = getArguments().getString("ip");
+            String local_text = getArguments().getString("text");
+            Logger.getLogger(MainActivity.class.getName()).info("IP: "+local_ip);
+            Logger.getLogger(MainActivity.class.getName()).info("TEXT: " + local_text);
+
+            builder.setMessage(local_text);
+            ((EditText) connect_dial_view.findViewById(R.id.ip)).setText(local_ip);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            Logger.getLogger(MainActivity.class.getName()).info("IP: exception!");
+        }
 
         builder.setView(connect_dial_view)
                 .setPositiveButton("Connect", new DialogInterface.OnClickListener() {

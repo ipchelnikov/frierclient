@@ -15,6 +15,8 @@
         android:singleLine="false"
         android:textSize="12dp"
         android:textColor="#e6e0e0"
-        android:typeface="monospace" />
+        android:typeface="monospace"
+        android:editable="true"
+        android:enabled="false" />
 
 </RelativeLayout>

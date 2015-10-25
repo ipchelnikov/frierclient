@@ -1,7 +1,5 @@
 package com.maestro.switcher;
 
-import android.app.Activity;
-import android.app.FragmentManager;
 import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -15,7 +13,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.logging.Logger;
 
 
@@ -27,18 +24,22 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
     private EditText command_string;
     private String server_ip;
     private ProgressDialog progress;
+    private int command_start;
 
     private static Logger log = Logger.getLogger(MainActivity.class.getName());
 
-    public static final int SERVERPORT = 6666;
+    public static final int SERVER_PORT = 6666;
+    public static final int CONNECT_TIME_OUT = 10000; // in milliseconds
 
     @Override
     public void Connect(String ip){
-        log.info("Connect IP = " + ip);
+
         server_ip = ip;
 
         if (progress != null && !progress.isShowing())
-            progress = ProgressDialog.show(this, "Connect PC", "Connecting...", true);
+            progress = ProgressDialog.show(this,
+                    getBaseContext().getString(R.string.progress_dialog_title),
+                    getBaseContext().getString(R.string.progress_dialog_message), true);
 
         new Thread(new ClientThread()).start();
     }
@@ -50,14 +51,13 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
 
         progress = new ProgressDialog(MainActivity.this);
 
-        (new connectDialog()).connect();
+        (new ConnectDialog()).connect();
 
         command_string = (EditText) findViewById(R.id.command_string);
 
         command_string.setOnKeyListener(new View.OnKeyListener() {
             @Override
             public boolean onKey(View v, int keyCode, KeyEvent event) {
-                log.info("On key: : " + keyCode);
 
                 // Actions filter
                 if (event.getAction() != KeyEvent.ACTION_DOWN)
@@ -65,9 +65,11 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
 
                 switch (keyCode) {
                     case KeyEvent.KEYCODE_ENTER:
-                        log.info("Enter");
+                        log.info("Processing enter command");
                         try {
-                            String command = command_string.getText().toString();
+                            String command = command_string.getText().subSequence(command_start,
+                                    command_string.getSelectionEnd()).toString();
+
                             command += '\0';
                             ostream.writeBytes(command);
                         } catch (IOException ex) {
@@ -77,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
                         }
                         break;
                     default:
-                        log.info("Unknown key. Have no idea what to do..");
+                        // Ignoring unknown key
                 }
 
                 return false;
@@ -90,9 +92,11 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
         public void run() {
 
             try {
+
                 InetAddress serverAddr = InetAddress.getByName(server_ip);
+
                 socket = new Socket();
-                socket.connect(new InetSocketAddress(serverAddr, SERVERPORT), 10000);
+                socket.connect(new InetSocketAddress(serverAddr, SERVER_PORT), CONNECT_TIME_OUT);
 
                 ostream = new DataOutputStream(socket.getOutputStream());
                 instream = new DataInputStream(socket.getInputStream());
@@ -109,43 +113,41 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
 
                 while (true)
                 {
-
                     byte [] buf = new byte[1000];
                     int num_bytes = instream.read(buf);
                     final String st_buf = new String(buf, 0, num_bytes, "UTF-8");
-                    log.info("Received message: " + st_buf);
-
 
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
+
+                            // TODO: identify start and end of the receiving buf
                             command_string.append(st_buf);
+                            command_start = command_string.getSelectionEnd();
                         }
                     });
 
                 }
 
-            } catch (UnknownHostException e1) {
+            } catch (Exception e1) {
                 e1.printStackTrace();
-                (new connectDialog(server_ip, "UnknownHostException")).connect();
-            } catch (IOException e1) {
-                e1.printStackTrace();
-                (new connectDialog(server_ip, "IOException")).connect();
+                (new ConnectDialog(server_ip,
+                        getBaseContext().getString(R.string.host_unreachable))).connect();
             }
         }
     }
 
-    class connectDialog {
+    class ConnectDialog {
 
         String ip, text;
 
         ConnectDialogFragment connectDialog;
 
-        public connectDialog() {
+        public ConnectDialog() {
             connectDialog = new ConnectDialogFragment();
         }
 
-        public connectDialog(String ip, String text) {
+        public ConnectDialog(String ip, String text) {
             this.ip = ip;
             this.text = text;
             connectDialog = new ConnectDialogFragment();
@@ -161,6 +163,3 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
         }
     }
 }
-
-
-

@@ -113,6 +113,8 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
 
                 while (true)
                 {
+                    //instream.readByte();
+
                     byte [] buf = new byte[1000];
                     int num_bytes = instream.read(buf);
                     final String st_buf = new String(buf, 0, num_bytes, "UTF-8");

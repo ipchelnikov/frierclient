@@ -19,8 +19,7 @@ import java.util.logging.Logger;
  */
 public class ConnectDialogFragment extends DialogFragment {
 
-    public Connector mConnector;
-    private Activity main_activity;
+    private Connector mConnector;
 
     public interface Connector {
         public void Connect(String ip);
@@ -36,7 +35,6 @@ public class ConnectDialogFragment extends DialogFragment {
         try {
             // Instantiate the NoticeDialogListener so we can send events to the host
             mConnector = (Connector) activity;
-            main_activity = activity;
         } catch (ClassCastException e) {
             // The activity doesn't implement the interface, throw exception
             throw new ClassCastException(activity.toString()
@@ -59,10 +57,17 @@ public class ConnectDialogFragment extends DialogFragment {
         try {
             String local_ip = getArguments().getString("ip");
             String local_text = getArguments().getString("text");
-            Logger.getLogger(MainActivity.class.getName()).info("IP: "+local_ip);
-            Logger.getLogger(MainActivity.class.getName()).info("TEXT: " + local_text);
 
             builder.setMessage(local_text);
+
+            if (!local_text.isEmpty())
+                builder.setNegativeButton("Exit", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        getActivity().finish();
+                        System.exit(0);
+                    }
+                });
+
             ((EditText) connect_dial_view.findViewById(R.id.ip)).setText(local_ip);
         }
         catch (Exception e) {
@@ -73,8 +78,7 @@ public class ConnectDialogFragment extends DialogFragment {
         builder.setView(connect_dial_view)
                 .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        EditText ip_string = (EditText)connect_dial_view.findViewById(R.id.ip);
-
+                        EditText ip_string = (EditText) connect_dial_view.findViewById(R.id.ip);
                         mConnector.Connect(ip_string.getText().toString());
                     }
                 });

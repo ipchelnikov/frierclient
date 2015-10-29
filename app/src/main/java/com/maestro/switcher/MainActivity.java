@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
     private Socket socket;
     private DataOutputStream ostream;
     private DataInputStream instream;
-    private EditText command_string;
+    private EditText command_string; // TODO: change EditText to CommandString class
     private String server_ip;
     private ProgressDialog progress;
     private int command_start;
@@ -92,6 +92,13 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
         public void run() {
 
             try {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        command_string.append(">");
+                        command_start = command_string.getSelectionEnd();
+                    }
+                });
 
                 InetAddress serverAddr = InetAddress.getByName(server_ip);
 
@@ -113,22 +120,33 @@ public class MainActivity extends AppCompatActivity implements ConnectDialogFrag
 
                 while (true)
                 {
-                    //instream.readByte();
-
                     byte [] buf = new byte[1000];
                     int num_bytes = instream.read(buf);
-                    final String st_buf = new String(buf, 0, num_bytes, "UTF-8");
 
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
+                    if (buf[0] == 1)
+                    {
+                        // skip start
+                        continue;
+                    }if (buf[0] == 2) {
+                        // finish
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                command_string.append(">");
+                                command_start = command_string.getSelectionEnd();
+                            }
+                        });
+                    } else {
 
-                            // TODO: identify start and end of the receiving buf
-                            command_string.append(st_buf);
-                            command_start = command_string.getSelectionEnd();
-                        }
-                    });
-
+                        final String st_buf = new String(buf, 0, num_bytes, "UTF-8");
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                command_string.append(st_buf);
+                                command_start = command_string.getSelectionEnd();
+                            }
+                        });
+                    }
                 }
 
             } catch (Exception e1) {
